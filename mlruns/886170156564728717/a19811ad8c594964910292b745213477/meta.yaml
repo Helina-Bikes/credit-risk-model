@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/KIDIST/Documents/credit-risk-model/mlruns/886170156564728717/a19811ad8c594964910292b745213477/artifacts
+end_time: 1751377197856
+entry_point_name: ''
+experiment_id: '886170156564728717'
+lifecycle_stage: active
+run_id: a19811ad8c594964910292b745213477
+run_name: RandomForest
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1751377190158
+status: 3
+tags: []
+user_id: KIDIST

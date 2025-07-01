@@ -146,4 +146,9 @@ def assign_risk_label(rfm_df, clusters):
 # Step 13: Merge with Processed
 # -------------------------------
 def integrate_risk_label(processed_df, rfm_with_risk):
+    # Drop if 'is_high_risk' already exists to avoid duplication
+    if 'is_high_risk' in processed_df.columns:
+        processed_df = processed_df.drop(columns=['is_high_risk'])
+    
     return pd.merge(processed_df, rfm_with_risk, on='CustomerId', how='left')
+

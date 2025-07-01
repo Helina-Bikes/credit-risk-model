@@ -14,7 +14,14 @@ if __name__ == "__main__":
     agg_df = create_aggregate_features(df)
     pipe = build_pipeline()
     processed_df = pipe.fit_transform(df)
-    final_df = pd.merge(agg_df, processed_df, on='CustomerId', how='left')
+    final_df = pd.merge(
+    agg_df,
+    processed_df,
+    on='CustomerId',
+    how='left',
+    suffixes=('_agg', '_proc')  # custom suffixes to avoid conflicts
+)
+
 
     # Task 4: RFM + Clustering + Proxy Target
     snapshot_date = datetime(2025, 7, 1)  # Replace with actual snapshot if needed
