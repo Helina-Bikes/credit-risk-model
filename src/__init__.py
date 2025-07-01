@@ -18,7 +18,7 @@ def create_aggregate_features(df):
 # --------------------------
 def extract_time_features(df):
     df = df.copy()
-    df['TransactionStartTime'] = pd.to_datetime(df['TransactionStartTime'])
+    df['TxnDate'] = pd.to_datetime(df[['TxnYear', 'TxnMonth', 'TxnDay']])
     df['TxnHour'] = df['TransactionStartTime'].dt.hour
     df['TxnDay'] = df['TransactionStartTime'].dt.day
     df['TxnMonth'] = df['TransactionStartTime'].dt.month
@@ -62,12 +62,16 @@ class CustomPreprocessor(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X = X.copy()
         customer_ids = X[['CustomerId']]  # Save for merging later
-        X = extract_time_features(X)
+
+        # REMOVE THIS: X = extract_time_features(X)
         X = handle_missing(X)
-        X = encode_categoricals(X)
-        X = scale_numerical(X, ['Amount', 'Value'])  # Ensure these columns exist
+        # REMOVE THIS IF ProductCategory already encoded: X = encode_categoricals(X)
+
+        X = scale_numerical(X, ['Amount', 'Value'])  # Confirm columns exist
+
         if 'CustomerId' in X.columns:
             X = X.drop(columns=['CustomerId'])
+
         return pd.concat([customer_ids.reset_index(drop=True), X.reset_index(drop=True)], axis=1)
 
 # --------------------------
@@ -82,3 +86,64 @@ def build_pipeline():
 # --------------------------
 # Step 8: Runner
 # --------------------------
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+# -------------------------------
+# Step 9: Calculate RFM Metrics
+# -------------------------------
+def calculate_rfm(df, snapshot_date):
+    # Rename columns temporarily to match what pandas expects
+    df = df.rename(columns={
+        'TxnYear': 'year',
+        'TxnMonth': 'month',
+        'TxnDay': 'day'
+    })
+
+    df['TxnDate'] = pd.to_datetime(df[['year', 'month', 'day']])
+
+    # Now compute RFM
+    rfm = df.groupby('CustomerId').agg({
+        'TxnDate': lambda x: (snapshot_date - x.max()).days,
+        'CustomerId': 'count',
+        'Amount': 'sum'
+    }).rename(columns={
+        'TxnDate': 'Recency',
+        'CustomerId': 'Frequency',
+        'Amount': 'Monetary'
+    }).reset_index()
+
+    return rfm
+
+# -------------------------------
+# Step 10: Scale RFM
+# -------------------------------
+def scale_rfm(rfm_df):
+    scaler = StandardScaler()
+    rfm_scaled = scaler.fit_transform(rfm_df[['Recency', 'Frequency', 'Monetary']])
+    return rfm_scaled
+
+# -------------------------------
+# Step 11: Cluster Customers
+# -------------------------------
+def cluster_customers(rfm_scaled, n_clusters=3):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    clusters = kmeans.fit_predict(rfm_scaled)
+    return clusters
+
+# -------------------------------
+# Step 12: Label High-Risk Group
+# -------------------------------
+def assign_risk_label(rfm_df, clusters):
+    rfm_df['Cluster'] = clusters
+    cluster_stats = rfm_df.groupby('Cluster')[['Recency', 'Frequency', 'Monetary']].mean()
+    high_risk_cluster = cluster_stats['Recency'].idxmax()  # most inactive group
+    rfm_df['is_high_risk'] = (rfm_df['Cluster'] == high_risk_cluster).astype(int)
+    return rfm_df[['CustomerId', 'is_high_risk']]
+
+# -------------------------------
+# Step 13: Merge with Processed
+# -------------------------------
+def integrate_risk_label(processed_df, rfm_with_risk):
+    return pd.merge(processed_df, rfm_with_risk, on='CustomerId', how='left')
