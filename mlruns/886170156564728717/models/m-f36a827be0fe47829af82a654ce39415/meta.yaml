@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/KIDIST/Documents/credit-risk-model/mlruns/886170156564728717/models/m-f36a827be0fe47829af82a654ce39415/artifacts
+creation_timestamp: 1751443427620
+experiment_id: '886170156564728717'
+last_updated_timestamp: 1751443435614
+model_id: m-f36a827be0fe47829af82a654ce39415
+model_type: null
+name: model
+source_run_id: 94d78b54f6a9449a8c62da8d4cee6432
+status: 2
+status_message: null

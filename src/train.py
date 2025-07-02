@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 
 def load_data(path='data/raw/data.csv'):
     df = pd.read_csv(path)
@@ -98,7 +99,20 @@ def main():
 
     # Register the best model to MLflow model registry
     with mlflow.start_run(run_name="register_best_model"):
-        mlflow.sklearn.log_model(best_model, "best_model", registered_model_name="CreditRiskModel")
+        result = mlflow.sklearn.log_model(best_model, "best_model", registered_model_name="CreditRiskModel")
+        # Promote the latest version to Production
+        client = MlflowClient()
+        latest_versions = client.get_latest_versions("CreditRiskModel", stages=["None"])
+        if latest_versions:
+            version = latest_versions[0].version
+            client.transition_model_version_stage(
+                name="CreditRiskModel",
+                version=version,
+                stage="Production",
+                archive_existing_versions=True
+            )
+        else:
+            print("No model version found to promote.")
 
 if __name__ == "__main__":
     main()

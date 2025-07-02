@@ -36,3 +36,25 @@ if __name__ == "__main__":
     # Save processed data
     final_df.to_csv('data/raw/data.csv', index=False)
     print("✅ Processed data with risk labels saved.")
+from fastapi import FastAPI
+from src.api.pydantic_models import CustomerFeatures, PredictionResponse
+import mlflow.pyfunc
+import numpy as np
+
+app = FastAPI()
+
+# Load the best model from MLflow Model Registry
+try:
+    model = mlflow.pyfunc.load_model("models:/CreditRiskModel/Production")
+except Exception as e:
+    print("❌ Could not load model from MLflow Model Registry:", e)
+    model = None
+
+@app.post("/predict", response_model=PredictionResponse)
+def predict_risk(data: CustomerFeatures):
+    if model is None:
+        return {"risk_probability": None, "is_high_risk": None, "error": "Model not available. Please check MLflow registry."}
+    input_array = np.array(data.features).reshape(1, -1)
+    prediction = model.predict(input_array)
+    prob = model.predict_proba(input_array)[0][1]  # Probability of high risk
+    return PredictionResponse(risk_probability=prob, is_high_risk=int(prob > 0.5))

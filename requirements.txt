@@ -1,5 +1,9 @@
 mlflow
-pytest
 scikit-learn
 pandas
 numpy
+fastapi
+uvicorn
+pydantic
+flake8
+pytest
